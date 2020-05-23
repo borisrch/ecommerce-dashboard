@@ -1,5 +1,7 @@
 package com.boris.ecommercedashboard.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,8 +24,14 @@ public class UserController {
 	}
 	
 	@PostMapping("/sign-up")
-	public void signUp(@RequestBody ApplicationUser user) {
+	public ResponseEntity<String> signUp(@RequestBody ApplicationUser user) {
+		
+		if (applicationUserRepository.findByUsername(user.getUsername()) != null) {
+			return new ResponseEntity<>("username already exists", HttpStatus.BAD_REQUEST);
+		}
+				
 		user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
 		applicationUserRepository.save(user);
+		return new ResponseEntity<>("account created", HttpStatus.CREATED);
 	}
 }
