@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
@@ -22,6 +23,7 @@ import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebSecurity extends WebSecurityConfigurerAdapter {
 
 	private UserDetailsServiceImpl userDetailsService;
@@ -52,7 +54,7 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
 			.anyRequest().authenticated()
 			.and()
 			.addFilter(new JWTAuthenticationFilter(authenticationManager()))
-			.addFilter(new JWTAuthorizationFilter(authenticationManager()))
+			.addFilter(new JWTAuthorizationFilter(authenticationManager(), userDetailsService))
 			// disable session creation by Spring Security
 			.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 	}
