@@ -10,9 +10,13 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 import com.auth0.jwt.JWT;
@@ -23,12 +27,22 @@ import static com.boris.ecommercedashboard.security.SecurityConstants.HEADER_STR
 import static com.boris.ecommercedashboard.security.SecurityConstants.TOKEN_PREFIX;
 import static com.boris.ecommercedashboard.security.SecurityConstants.SECRET;
 
+/*
+ * BasicAuthenticationFilter extends OncePerRequestFilter that ensures a single execution per request dispatch.
+ * This class checks for the authorization header and authenticates the JWT token and sets the authentication in context.
+ * This will protect our APIs from requests that do not have any authorization token.
+ * The configuration about which resource to be protected and which not can be configured in WebSecurityConfig.java
+ */
+
 public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
 	
 	private static final Logger log = LoggerFactory.getLogger(JWTAuthorizationFilter.class);
 
-	public JWTAuthorizationFilter(AuthenticationManager authenticationManager) {
+	private UserDetailsService userDetailsService;
+	
+	public JWTAuthorizationFilter(AuthenticationManager authenticationManager, UserDetailsService userDetailsService) {
 		super(authenticationManager);
+		this.userDetailsService = userDetailsService;
 	}
 	
 	@Override
@@ -50,13 +64,17 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
 	private UsernamePasswordAuthenticationToken getAuthentication(HttpServletRequest req) {
 		String token = req.getHeader(HEADER_STRING);
 		if (token != null) {
+			
+			// Decrypt the JWT to find the username.
 			String user = JWT.require(Algorithm.HMAC512(SECRET.getBytes()))
 					.build()
 					.verify(token.replace(TOKEN_PREFIX, ""))
 					.getSubject();
 			
+			UserDetails userDetails = userDetailsService.loadUserByUsername(user);
+			
 			if (user != null) {
-				return new UsernamePasswordAuthenticationToken(user, null, new ArrayList<>());
+				return new UsernamePasswordAuthenticationToken(user, null, userDetails.getAuthorities());
 			}
 			return null;
 		}
